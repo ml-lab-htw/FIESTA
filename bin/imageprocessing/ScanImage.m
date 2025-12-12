@@ -179,7 +179,15 @@ function params = CheckParameters( params )
   end
   
   if ~isfield( params, 'short_object_threshold' )
-    params.short_object_threshold = 4 * params.reduce_fit_box * params.fwhm_estimate / params.scale / (2*sqrt(2*log(2)));
+    params.short_object_threshold = 4 * params.reduce_fit_box * params.fwhm_estimate / params.scale / (2*sqrt(2*log(2)));;
+  end
+  
+  % new safety iteration limits (added)
+  if ~isfield( params, 'max_iterations' )
+    params.max_iterations = 10000; % generic upper bound for while-loops
+  end
+  if ~isfield( params, 'max_cluster_iterations' )
+    params.max_cluster_iterations = 5000; % bound for cluster refinement loops
   end
     
 %   if ~isfield( params, 'eccentricity_threshold' )
