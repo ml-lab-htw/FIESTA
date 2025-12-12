@@ -156,6 +156,10 @@ function [ value, CoD, region ] = Fit2D( modelstr, guess, params, bw_id )
   lb(1) = 0.0;                   %<< lower bound for each parameter
   ub(1) = Inf;                   %<< upper bound for each parameter
 
+  if ~isfield(params, 'threshold')
+      params.threshold = adaptthresh(pic);
+  end
+
   % save center for calculation of lower and upper bounds
   if num_points > 1
       data.center = mean(guess(1).x,1);
@@ -286,9 +290,17 @@ function [ value, CoD, region ] = Fit2D( modelstr, guess, params, bw_id )
   % results: this function just passes the results of 'lsqnonlin'
   
     % set options for fitting
-    options = params.options;
-    options.TypicalX = dx;
+    if ~isfield(params, 'options')
+        params.options = struct();
+    else
+        options = params.options;
+    end
+
+    options.TypcialX = dx;
     
+    % Suppress all lsqnonlin command window output
+    options.Display = 'off';
+
     % set used methode
     if largescale
       options.Algorithm = 'trust-region-reflective';
