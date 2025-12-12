@@ -18,6 +18,9 @@ if isfield(Config,'DynamicFil')
         orig_region = params.bw_region;
     end
 end
+if isfield(Config,'TformChannel')
+    params.transform = Config.TformChannel;
+end
 params.drift = Config.Drift;
 params.bead_model=Config.Model;
 params.max_beads_per_region=Config.MaxFunc;
@@ -129,7 +132,11 @@ if Config.FirstTFrame>0
             save(fData,'-append','Objects','ME');
             return;
         end
-    elseif JobNr==-1    
+    elseif JobNr==-1
+        if ~isempty(gcp)
+            delete(gcp);
+        end
+        parpool(num_cores);
         params.display = 0;
         dirStatus = [FiestaDir.AppData 'fiestastatus' filesep];  
         [y,x,z] = size(Stack{1});
@@ -148,6 +155,7 @@ if Config.FirstTFrame>0
             return;
         end  
         parallelprogressdlg('close');
+        delete(gcp);
     else
         h=progressdlg('String',sprintf('Tracking - Frame: %d',Config.FirstTFrame),'Min',Config.FirstTFrame-1,'Max',Config.LastFrame,'Cancel','on','Parent',hMainGui.fig);
         for n=Config.FirstTFrame:Config.LastFrame
@@ -243,6 +251,16 @@ if ~isempty(Objects)
     Molecule=fDefStructure(Molecule,'Molecule');
     Filament=fDefStructure(Filament,'Filament');
     nMolTrack=length(MolTrack);
+
+    nChannel = Config.TformChannel{1}(3,3);
+    if length(Config.TformChannel)==1
+        T = Config.TformChannel{1};
+    else
+        T = Config.TformChannel{nChannel};
+    end
+    
+    T(3,3) = 1;
+   
     for n = 1:nMolTrack
         nData=size(MolTrack{n},1);
         Molecule(n).Name = ['Molecule ' num2str(n)];
@@ -405,3 +423,7 @@ if ~isempty(Objects)
     end
     clear Molecule Filament Objects Config;
 end
+
+function fSave(dirStatus,frame)
+fname = [dirStatus 'frame' int2str(frame) '.mat'];
+save(fname,'frame');

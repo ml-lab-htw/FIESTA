@@ -534,6 +534,13 @@ end
 
 function [Track,Obj]=ProcessTrack(Track,Obj,k,Config)
 while ~isempty(find(Obj(k,:)>0 & Obj(k,:)~=Inf,1))
+    if ~isfield(Config,'MaxProcessTrackIterations'); Config.MaxProcessTrackIterations=10000; end
+    if ~exist('procTrackIter','var'); procTrackIter=0; end
+    procTrackIter = procTrackIter + 1;
+    if procTrackIter > Config.MaxProcessTrackIterations
+        warning('FIESTA:fFeatureConnect:ProcessTrackMaxIter','Aborting ProcessTrack loop after %d iterations',procTrackIter);
+        break;
+    end
     current=find(Obj(k,:)>0 & Obj(k,:)~=Inf,1);
     %check if track end in frame k
     if isempty(find(Obj(k+1,:)==Obj(k,current),1))
@@ -594,7 +601,18 @@ col2=pairs(:,2);
 first=col1(1);
 last=col2(1);
 between=first;
+checkPairsIter=0;
 while last~=between
+    checkPairsIter = checkPairsIter + 1;
+    if isfield(Config,'MaxCheckPairsIterations')
+        maxCP = Config.MaxCheckPairsIterations;
+    else
+        maxCP = 10000;
+    end
+    if checkPairsIter > maxCP
+        warning('FIESTA:fFeatureConnect:CheckPairsMaxIter','Aborting CheckPairs loop after %d iterations',checkPairsIter);
+        break;
+    end
     between=last;
     p1=col1==first;    
     p2=col2==last;    
@@ -821,7 +839,13 @@ else
     CostIntLen=zeros(size(quad,1),1);
 end
 Cost=CostPos*Config.Connect.Position+CostDir*Config.Connect.Direction+CostSpeed*Config.Connect.Speed+CostIntLen*Config.Connect.IntensityOrLength;
+pruneIter=0;
 while size(quad,1)>1
+    pruneIter = pruneIter + 1;
+    if pruneIter > 10000
+        warning('FIESTA:fFeatureConnect:ComputeCostPruneMaxIter','Aborting pruning loop after %d iterations',pruneIter);
+        break;
+    end
     k=find(isnan(Cost),1);
     if isempty(k)
         [m,k]=max(Cost);
@@ -1007,4 +1031,5 @@ p=[p;v(t,:);];
 [m,t]=max(v(:,2));
 p=[p;v(t,:);];
 p=[p;p(1,:);];
-A=polyarea(p(:,1),p(:,2));  
+A=polyarea(p(:,1),p(:,2));
+
