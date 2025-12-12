@@ -8,7 +8,10 @@ function output = Image2Binary( input, params )
 %   output  the binary result having the same dimensions as the input image
 
   input = double( input ); %<< convert to double
-  
+
+  if isfield( params, 'invert' )
+      input = imcomplement(input);
+  end
   
   if ~isnan(params.background_filter)
     Isort = sort( input(:) );
@@ -91,6 +94,13 @@ function output = Image2Binary( input, params )
     input = double( input );
     output = output .* ( input > automatic_threshold ); 
 %     output = bwmorph( output, 'erode', 1 );
+
+
+    % filter small / large regions by area
+    if isfield( params, 'areafilt' )
+        output = bwareafilt(logical(output), params.areafilt);
+    end
+    
   end
 
   % smooth binary image, if requested
