@@ -316,7 +316,14 @@ function objects = fitRemainingPoints( objects, params )
   
   k = 1;
   while k <= numel(objects) % run through all objects
-    
+    if ~isfield(params,'max_iterations'); params.max_iterations=10000; end
+    if ~exist('remaining_iter','var'); remaining_iter=0; end
+    remaining_iter = remaining_iter + 1;
+    if remaining_iter > params.max_iterations
+        warning('FIESTA:FineScan:RemainingPointsLoopMaxIter','Aborting fitRemainingPoints after %d iterations',remaining_iter);
+        break;
+    end
+
     Log( sprintf( 'process object %d with %d points', k, numel( objects(k).p ) ), params );
 
     % determine which kind of object we have
@@ -380,7 +387,7 @@ function objects = fitRemainingPoints( objects, params )
         p.b = double( p.b );            
         
         if n == 1 || n == numel( objects(k).p ) % start or end point
-          
+
           [ data, CoD(n) ] = Fit2D( 'e', p, params );
           if CoD(n) > params.min_cod % fit went well
             objects(k).p(n) = data;
@@ -391,7 +398,7 @@ function objects = fitRemainingPoints( objects, params )
           end
         
         else % middle point
-          
+
           [ data, CoD(n) ] = Fit2D( 'm', p, params );
           if CoD(n) > params.min_cod % fit went well
             objects(k).p(n) = data;

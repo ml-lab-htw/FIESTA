@@ -65,7 +65,13 @@ function idx = getClusters( p, dist, norm, max_area, has_object_data )
   
   % add points to cluster list, until everything is finished
   idx = zeros(1,n);
+  cluster_main_iter = 0;
   while true
+    cluster_main_iter = cluster_main_iter + 1;
+    if cluster_main_iter > 10000 % hard safety cap
+        warning('FIESTA:getClusters:MainLoopMaxIter','Aborting main clustering loop after %d iterations',cluster_main_iter);
+        break;
+    end
     i = find( idx == 0, 1, 'first' ); % get one unprocessed point
     if isempty(i) % no points left => finished
       break;

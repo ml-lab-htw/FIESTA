@@ -397,7 +397,7 @@ function objects = FindLineObjects( region_stats, params )
       end
       [~,ua_id,~] = unique(a(:,3));
       a = a(ua_id,:);
-      
+
 %       PlotOrientations( a( :, [1 2 4 ] ) );
       
       % we have now all incoming chains and have to connect them - we do
@@ -414,6 +414,16 @@ function objects = FindLineObjects( region_stats, params )
       %angles = mod( repmat( a(:,4)', size(a,1), 1 ) - repmat( a(:,4), 1, size(a,1) ) + pi, 2*pi );
 
       while true && ~isempty( angles )% run until there are no correlated chunks anymore
+        % safety break if iterations explode
+        if ~isfield(params,'max_iterations')
+            params.max_iterations = 10000; % fallback if not passed
+        end
+        if ~exist('angle_iter','var'); angle_iter = 0; end
+        angle_iter = angle_iter + 1;
+        if angle_iter > params.max_iterations
+            warning('FIESTA:RoughScan:AngleLoopMaxIter','Aborting angle correlation loop after %d iterations',angle_iter);
+            break;
+        end
         [ a_max, x ] = max( angles );
         [ a_max, y ] = max( a_max );
         if isinf(a_max) % no correlated chunks anymore => break                 
@@ -474,6 +484,13 @@ function objects = FindLineObjects( region_stats, params )
     
     % find all conneted middle points
     while bw_feat(y,x) == 2 % run while it is a middle point
+      if ~isfield(params,'max_iterations'); params.max_iterations=10000; end
+      if ~exist('chain_iter','var'); chain_iter=0; end
+      chain_iter = chain_iter + 1;
+      if chain_iter > params.max_iterations
+          warning('FIESTA:RoughScan:ChainLoopMaxIter','Aborting getPointChain after %d iterations',chain_iter);
+          break;
+      end
       points(end+1,1:2) = [ x y ]; %#ok<AGROW>
       ker = kernel;
       ker( 4 - dy, 4 - dx ) = 0; % dont find the last point again!
@@ -501,6 +518,15 @@ function objects = FindLineObjects( region_stats, params )
   for i = 1:numel(chains) % run through chains
     
     if size( chains{i}, 1 ) > 1 % elongated object
+
+      if norm([chains{i}(end,1)-chains{i}(1,1) chains{i}(end,2)-chains{i}(1,2)]) < params.short_object_threshold
+        % convert to small filament if its a short chain
+        chains{i} = [ chains{i}(1,:) ; chains{i}(end,:) ]; %#ok<AGROW>
+      else
+        % otherwise average the whole chain
+        chains{i} = AverageChain( chains{i}, round( params.object_width ) ); %#ok<AGROW>
+      end
+      
       height = image(sub2ind(size(image),round(chains{i}(:,2)),round(chains{i}(:,1))));
       height = median(height(~isnan(height)));
       chains{i} = AverageChain( chains{i}, 4*params.object_width, params.short_object_threshold );    
